@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BlockBook</title>
+<style>
+:root{
+  --ink:#1F2B32; --slate:#2B3A42; --concrete:#DADDDC; --card:#F4F5F4;
+  --line:#C3C8C7; --sand:#C9A24B; --gain:#2E7D4F; --loss:#B23A2E; --mute:#5E6B70;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--concrete);color:var(--ink);
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+.app{max-width:440px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--concrete);position:relative}
+main{flex:1;padding:0 0 90px}
+.hero{
+  background-color:var(--slate);color:#fff;padding:22px 20px 24px;
+  background-image:linear-gradient(rgba(255,255,255,.07) 2px,transparent 2px),
+                   linear-gradient(90deg,rgba(255,255,255,.07) 2px,transparent 2px);
+  background-size:56px 28px;border-bottom:6px solid var(--sand);
+}
+.hero h1{margin:0;font-size:15px;font-weight:600;color:#C9D2D6}
+.hero .biz{font-size:19px;font-weight:800;margin-bottom:8px}
+.hero .big{font-size:44px;font-weight:800;letter-spacing:-1px;margin:6px 0 2px;line-height:1.05}
+.hero .big.gain{color:#8EDBA9}.hero .big.loss{color:#FF9282}
+.hero .sub{font-size:14px;color:#C9D2D6}
+.pad{padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.card h2{margin:0 0 10px;font-size:16px}
+.row{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;border-bottom:1px solid var(--line);font-size:15px;gap:12px}
+.row:last-child{border-bottom:0}
+.row b{font-variant-numeric:tabular-nums}
+.row.total{font-weight:700;border-top:2px solid var(--ink);border-bottom:0;margin-top:4px;padding-top:10px}
+.mute{color:var(--mute)}
+.sand{display:flex;align-items:flex-start;gap:12px;border-left:6px solid var(--sand)}
+.sand .dot{width:14px;height:14px;border-radius:50%;background:var(--sand);flex:none;margin-top:5px;box-shadow:0 0 0 4px rgba(201,162,75,.3)}
+.sand.done{border-left-color:#8B979C}.sand.done .dot{background:#8B979C;box-shadow:none}
+.sand .t{font-size:17px;font-weight:800}
+.sand .s{font-size:13px;color:var(--mute);margin-top:2px}
+.owe{display:block;width:100%;text-align:left;font-family:inherit;color:inherit;cursor:pointer;border-left:6px solid var(--loss)}
+.owe .t{font-size:24px;font-weight:800;color:var(--loss)}
+.owe .s{font-size:13px;color:var(--mute);margin-top:2px}
+.stock{width:100%;border-collapse:collapse;font-size:14px}
+.stock th{font-weight:600;color:var(--mute);text-align:right;padding:4px 0 8px;font-size:13px}
+.stock th:first-child,.stock td:first-child{text-align:left}
+.stock td{text-align:right;padding:8px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.stock td:first-child{font-weight:600}
+.stock td:last-child{font-weight:800}
+.rec{padding:10px 0;border-bottom:1px solid var(--line)}
+.rec:last-child{border-bottom:0}
+.rec .top{display:flex;justify-content:space-between;font-weight:700;font-size:15px}
+.rec .det{font-size:13px;color:var(--mute);margin-top:2px}
+.acts{display:flex;gap:18px;margin-top:2px}
+.link{background:none;border:0;padding:8px 0;font:inherit;font-size:13px;font-weight:700;color:var(--ink);text-decoration:underline;cursor:pointer}
+.link.danger{color:var(--loss)}
+.link:focus-visible{outline:3px solid var(--sand);outline-offset:2px}
+.gain-t{color:var(--gain)}.loss-t{color:var(--loss)}
+label{display:block;font-size:14px;font-weight:600;margin:0 0 5px}
+label .opt{font-weight:400;color:var(--mute)}
+input[type=number],input[type=date],input[type=text],input[type=tel]{
+  width:100%;font-size:18px;padding:12px;border:1.5px solid var(--line);border-radius:8px;
+  background:#fff;color:var(--ink);font-family:inherit}
+input:focus{outline:3px solid var(--sand);outline-offset:0;border-color:var(--ink)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{margin-bottom:14px}
+.hint{font-size:12.5px;color:var(--mute);margin-top:4px}
+.btn{width:100%;font-size:17px;font-weight:700;padding:15px;border-radius:10px;border:0;cursor:pointer;
+  background:var(--ink);color:#fff;font-family:inherit}
+.btn:focus-visible,.tab:focus-visible,.seg button:focus-visible,.owe:focus-visible,.past:focus-visible{outline:3px solid var(--sand);outline-offset:2px}
+.btn.ghost{background:transparent;color:var(--ink);border:2px solid var(--ink)}
+.btn.small{font-size:15px;padding:11px}
+.preview{background:var(--slate);color:#fff;border-radius:10px;padding:14px 16px;margin-bottom:14px}
+.preview .row{border-color:rgba(255,255,255,.18)}
+.preview .row.total{border-top-color:#fff}
+.section-title{font-size:20px;font-weight:800;margin:4px 0 14px}
+.group{border:1.5px solid var(--line);border-radius:10px;padding:14px 14px 2px;margin-bottom:14px;background:var(--card)}
+.group h2{margin:0 0 12px;font-size:16px}
+.cost-row{border-top:1px solid var(--line);padding-top:12px;margin-top:2px}
+.cost-row:first-of-type{border-top:0;padding-top:0}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:2px solid var(--ink);border-radius:10px;overflow:hidden;margin-bottom:16px}
+.seg button{background:transparent;border:0;padding:12px 6px;font-size:15px;font-weight:700;color:var(--ink);cursor:pointer;font-family:inherit}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.debtor{padding:12px 0;border-bottom:1px solid var(--line)}
+.debtor:last-child{border-bottom:0}
+.debtor .top{display:flex;justify-content:space-between;align-items:baseline;font-weight:800;font-size:17px}
+.debtor .top span:last-child{color:var(--loss)}
+.debtor .pay{display:grid;grid-template-columns:1fr auto;gap:10px;margin-top:10px}
+.debtor .pay input{padding:10px 12px;font-size:16px}
+.debtor .pay button{padding:10px 16px;font-size:15px;width:auto}
+.past{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;background:none;border:0;
+  border-bottom:1px solid var(--line);padding:12px 0;text-align:left;font-family:inherit;color:inherit;cursor:pointer}
+.past:last-child{border-bottom:0}
+.past .n{font-weight:800;font-size:16px;display:block}
+.past .m{font-size:13px;color:var(--mute)}
+.past .v{font-weight:800;font-size:16px;font-variant-numeric:tabular-nums}
+.editing{background:#FFF6DC;border:1.5px solid var(--sand);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:14px;font-weight:600}
+.tabs{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;
+  display:grid;grid-template-columns:repeat(4,1fr);background:var(--ink);border-top:4px solid var(--sand)}
+.tab{background:none;border:0;color:#AEB9BE;font-size:12px;font-weight:600;padding:10px 0 12px;cursor:pointer;font-family:inherit}
+.tab svg{display:block;margin:0 auto 3px}
+.tab[aria-selected=true]{color:#fff}
+.tab:focus-visible{outline-offset:-3px}
+.toast{position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;
+  padding:11px 18px;border-radius:99px;font-size:14px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .2s;max-width:90%;text-align:center;z-index:100}
+.toast.show{opacity:1}
+.note{font-size:13px;color:var(--mute);text-align:center;padding:4px 16px 0}
+.step-indicator{display:flex;gap:6px;margin-bottom:16px}
+.step-pill{flex:1;height:6px;background:var(--line);border-radius:3px}
+.step-pill.active{background:var(--sand)}
+.cloud-badge{position:fixed;top:8px;right:8px;font-size:11px;font-weight:700;padding:4px 10px;border-radius:99px;z-index:200;transition:opacity .3s}
+.cloud-badge.saved{background:#2E7D4F;color:#fff}
+.cloud-badge.saving{background:#C9A24B;color:#1F2B32}
+.cloud-badge.error{background:#B23A2E;color:#fff}
+.cloud-badge.hidden{opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
+</style>
+</head>
+<body>
+
+<!-- ================= FIREBASE (cloud backup) ================= -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, doc, setDoc, getDoc
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA-tasUiki6vjBC-4xhzqGLuQWNTnTnJtQ",
+    authDomain: "block-book-830c3.firebaseapp.com",
+    projectId: "block-book-830c3",
+    storageBucket: "block-book-830c3.firebasestorage.app",
+    messagingSenderId: "784056928943",
+    appId: "1:784056928943:web:b70a0fb9cc560209fc625a",
+    measurementId: "G-JS8LLEM892"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // Turns a phone number into a safe Firestore document id, e.g.
+  // "0801 234 5678" -> "0_08012345678"
+  function docIdFor(phone) {
+    const digits = String(phone || "").replace(/\D/g, "");
+    return "u_" + digits;
+  }
+
+  function setBadge(state) {
+    const el = document.getElementById("cloud-badge");
+    if (!el) return;
+    el.className = "cloud-badge " + state;
+    el.textContent = state === "saving" ? "Backing up\u2026" : state === "saved" ? "Backed up" : state === "error" ? "Backup failed" : "";
+    if (state === "saved") {
+      clearTimeout(window.__badgeHideTimer);
+      window.__badgeHideTimer = setTimeout(() => { el.className = "cloud-badge hidden"; }, 1800);
+    }
+  }
+
+  // Called by the app (see saveState in the main script) after every local
+  // save. Debounced so rapid typing doesn't spam Firestore.
+  let saveTimer = null;
+  window.cloudBackup = function (phone, dataObj) {
+    if (!phone) return;
+    clearTimeout(saveTimer);
+    setBadge("saving");
+    saveTimer = setTimeout(async () => {
+      try {
+        await setDoc(doc(db, "blockbook_backups", docIdFor(phone)), {
+          data: dataObj,
+          updatedAt: new Date().toISOString()
+        });
+        setBadge("saved");
+      } catch (e) {
+        console.error("Cloud backup failed:", e);
+        setBadge("error");
+      }
+    }, 1200);
+  };
+
+  // Called from the "Restore from backup" button on the login screen.
+  // Returns the saved data object, or null if nothing was found.
+  window.cloudRestore = async function (phone) {
+    try {
+      const snap = await getDoc(doc(db, "blockbook_backups", docIdFor(phone)));
+      if (!snap.exists()) return null;
+      return snap.data().data || null;
+    } catch (e) {
+      console.error("Cloud restore failed:", e);
+      throw e;
+    }
+  };
+</script>
+<!-- ============================================================ -->
+
+<div class="cloud-badge hidden" id="cloud-badge"></div>
+
+<div class="app">
+  <main id="view"></main>
+  <nav class="tabs" id="nav" role="tablist" aria-label="Main" style="display:none">
+    <button class="tab" role="tab" data-tab="summary">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="6"/><rect x="3" y="14" width="8" height="6"/><rect x="13" y="14" width="8" height="6"/></svg>Summary</button>
+    <button class="tab" role="tab" data-tab="sold">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h13v10H3zM16 10h3l2 3v4h-5"/><circle cx="7" cy="18" r="1.6"/><circle cx="17" cy="18" r="1.6"/></svg>Sold items</button>
+    <button class="tab" role="tab" data-tab="daily">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="17" rx="2"/><path d="M8 3v4M16 3v4M8 12h8M8 16h5"/></svg>Daily record</button>
+    <button class="tab" role="tab" data-tab="settings">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></svg>Settings</button>
+  </nav>
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<script>
+const TODAY = new Date().toISOString().slice(0,10);
+
+let user = null;
+let setupStep = 1;
+let setupData = {
+  name: "",
+  phone: "",
+  cement: 12500,
+  workers: 25000,
+  products: [
+    { id: "b6", name: "6 inch block", price: 900, initialStock: 0 },
+    { id: "b9", name: "9 inch block", price: 1000, initialStock: 0 }
+  ]
+};
+
+let prices = { cement: 0, workers: 0 };
+let products = [];
+
+let nextId = 1;
+let batchCount = 1;
+let pastBatches = [];
+let batch = null;
+let ledger = [];
+let customers = {};
+
+/* ---------- Persistent storage (local phone + cloud backup) ---------- */
+const STORAGE_KEY = "blockbook_data_v1";
+
+function currentDataSnapshot() {
+  return { user, setupStep, setupData, prices, products, nextId, batchCount, pastBatches, batch, ledger, customers, trialStart, unlocked, deviceRef };
+}
+
+function saveState() {
+  const data = currentDataSnapshot();
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) { /* storage unavailable - app still works, just won't persist locally */ }
+  // Cloud backup: only once the yard has a phone number (i.e. setup is done).
+  if (user && user.phone && window.cloudBackup) {
+    window.cloudBackup(user.phone, data);
+  }
+}
+
+function applyLoadedData(data) {
+  if (!data) return;
+  if (data.user !== undefined) user = data.user;
+  if (data.setupStep !== undefined) setupStep = data.setupStep;
+  if (data.setupData !== undefined) setupData = data.setupData;
+  if (data.prices !== undefined) prices = data.prices;
+  if (data.products !== undefined) products = data.products;
+  if (data.nextId !== undefined) nextId = data.nextId;
+  if (data.batchCount !== undefined) batchCount = data.batchCount;
+  if (data.pastBatches !== undefined) pastBatches = data.pastBatches;
+  if (data.batch !== undefined) batch = data.batch;
+  if (data.ledger !== undefined) ledger = data.ledger;
+  if (data.customers !== undefined) customers = data.customers;
+  if (data.trialStart !== undefined) trialStart = data.trialStart;
+  if (data.unlocked !== undefined) unlocked = data.unlocked;
+  if (data.deviceRef !== undefined) deviceRef = data.deviceRef;
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    applyLoadedData(JSON.parse(raw));
+  } catch (e) { /* corrupt or missing data - start fresh */ }
+}
+
+/* ---------- Free trial ---------- */
+const UNLOCK_CODE = "BLOCKBOOK-2026";
+const TRIAL_DAYS = 30;
+
+const MONTHLY_PRICE = "\u20a62,000";
+const PAYMENT_LINES = [
+  "Bank Transfer",
+  "Account name: Olugbade Marvellous Mayowa",
+  "Account number: 5991690028",
+  "Bank: Moniepoint MFB"
+];
+const CONTACT_PHONE = "2347046995623";
+
+let trialStart = null;
+let unlocked = false;
+let deviceRef = null;
+function genDeviceRef() {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let s = "";
+  for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+  return s;
+}
+
+function trialStatus() {
+  if (unlocked) return { left: Infinity, expired: false };
+  const start = new Date(trialStart + "T00:00:00");
+  const elapsed = Math.floor((Date.now() - start.getTime()) / 86400000);
+  const left = TRIAL_DAYS - elapsed;
+  return { left, expired: left <= 0 };
+}
+function trialExpiredView() {
+  const businessLine = user ? `${user.name} (${user.phone})` : "not set up yet";
+  const waMsg = `Hi, I'd like to pay for BlockBook.\nBusiness: ${businessLine}\nReference: ${deviceRef}`;
+  return `
+  <section class="hero">
+    <h1>BlockBook</h1>
+    <div class="big" style="font-size:26px;color:#fff">Your free trial has ended</div>
+    <div class="sub">Pay ${esc(MONTHLY_PRICE)}/month to keep using BlockBook</div>
+  </section>
+  <div class="pad">
+    <div class="card">
+      <h2>How to pay</h2>
+      ${PAYMENT_LINES.map(l => `<div class="row"><span>${esc(l)}</span></div>`).join("")}
+      <div class="row total"><span>Your reference code</span><b>${esc(deviceRef)}</b></div>
+      <p class="hint" style="margin-top:6px">Include this code with your payment or message so it can be matched to this app.</p>
+    </div>
+    <div class="grid2" style="margin-bottom:14px">
+      <a class="btn" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="https://wa.me/${esc(CONTACT_PHONE)}?text=${encodeURIComponent(waMsg)}">Message on WhatsApp</a>
+      <a class="btn ghost" style="display:flex;align-items:center;justify-content:center;text-decoration:none" href="tel:${esc(CONTACT_PHONE)}">Call to confirm</a>
+    </div>
+    <p class="hint" style="margin:0 0 14px">Once you've paid, send proof above and you'll be given a code to unlock the app.</p>
+    <div class="field"><label for="uc-code">Unlock code</label>
+      <input id="uc-code" type="text" autocomplete="off" placeholder="Enter code once you have it"></div>
+    <button class="btn" onclick="tryUnlock()">Unlock</button>
+  </div>`;
+}
+function tryUnlock() {
+  const code = document.getElementById("uc-code").value.trim();
+  if (code === UNLOCK_CODE) { unlocked = true; saveState(); render(); toast("Unlocked, thanks!"); }
+  else { toast("That code isn't right"); }
+}
+
+let tab = "summary", soldSub = "sale", starting = false, addingLoad = false, editingLoads = false;
+let editing = null;
+let viewingPast = null;
+const cur = () => viewingPast !== null ? pastBatches[viewingPast] : batch;
+
+const fmt = n => Math.round(n).toLocaleString("en-US");
+const num = v => Math.max(0, parseFloat(v) || 0);
+const sum = (a, f) => a.reduce((t, x) => t + f(x), 0);
+const sandCost = b => sum(b.loads, l => l.price);
+const otherTotal = d => sum(d.others, o => o.amt);
+const dayCost = d => d.cement * prices.cement + d.workers + otherTotal(d);
+const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+const lbl = iso => new Date(iso + "T00:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }).replace(",", "");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const val = id => num(document.getElementById(id).value);
+const dateVal = id => document.getElementById(id).value || TODAY;
+
+function totals(b = batch) {
+  const income = sum(b.sales, s => s.value);
+  const cement = sum(b.days, d => d.cement * prices.cement);
+  const workers = sum(b.days, d => d.workers);
+  const other = sum(b.days, otherTotal);
+  const sand = sandCost(b);
+  const costs = sand + cement + workers + other;
+  return { income, sand, cement, workers, other, costs, profit: income - costs };
+}
+
+function stock(b = batch, skipSaleId = null) {
+  const sales = b.sales.filter(s => s.id !== skipSaleId);
+  let res = {};
+  products.forEach(p => {
+    const start = p.initialStock || 0;
+    const made = sum(b.days, d => (d.items && d.items[p.id]) ? d.items[p.id].made || 0 : 0);
+    const broken = sum(b.days, d => (d.items && d.items[p.id]) ? d.items[p.id].broken || 0 : 0);
+    const sold = sum(sales, s => (s.items && s.items[p.id]) || 0);
+    const instock = start + made - broken - sold;
+    res[p.id] = { name: p.name, start, made, broken, sold, instock };
+  });
+  return res;
+}
+
+function owingList() {
+  const map = {};
+  ledger.forEach(e => { map[e.customer] = (map[e.customer] || 0) + (e.kind === "owed" ? e.amt : -e.amt); });
+  return Object.entries(map).filter(([, b]) => b > 0).map(([name, bal]) => ({ name, bal }))
+    .sort((a, b) => b.bal - a.bal || a.name.localeCompare(b.name));
+}
+
+function canon(name) {
+  const n = name.trim(), hit = ledger.find(e => e.customer.toLowerCase() === n.toLowerCase());
+  return hit ? hit.customer : n;
+}
+function getPhone(name) { return (customers[name] || "").trim(); }
+function setPhone(name, phone) { if (name && phone) customers[name] = phone.trim(); }
+function callBtn(name) {
+  const phone = getPhone(name);
+  if (!phone) return "";
+  return `<a class="link" href="tel:${esc(phone)}" style="text-decoration:none">\ud83d\udcde Call ${esc(phone)}</a>`;
+}
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 2200);
+}
+
+function confirmTap(btn, fn) {
+  if (btn.dataset.armed) { fn(); return; }
+  btn.dataset.armed = "1";
+  const old = btn.textContent;
+  btn.textContent = "Tap again to delete";
+  setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = old; } }, 3000);
+}
+
+/* ---------- Setup Wizard / Login ---------- */
+let restoring = false;
+
+function loginView() {
+  const step1 = `
+    <div class="field"><label for="l-name">Block industry name</label>
+      <input id="l-name" type="text" autocomplete="organization" value="${esc(setupData.name)}" placeholder="e.g. Marvelous Block Works"></div>
+    <div class="field"><label for="l-phone">Phone number</label>
+      <input id="l-phone" type="tel" inputmode="tel" value="${esc(setupData.phone)}" autocomplete="tel" placeholder="e.g. 08012345678"></div>
+    <button class="btn" onclick="nextSetupStep(1)">Next: Material & Worker Costs &rarr;</button>
+    <div style="height:14px"></div>
+    <button class="btn ghost small" onclick="restoring=true;render()">Used BlockBook before? Restore my data</button>`;
+
+  const restoreStep = `
+    <p class="hint" style="margin-top:0;margin-bottom:14px">Enter the phone number you used before. If we have a backup saved for it, your records will be restored.</p>
+    <div class="field"><label for="r-phone">Phone number</label>
+      <input id="r-phone" type="tel" inputmode="tel" placeholder="e.g. 08012345678"></div>
+    <button class="btn" onclick="doRestore()" id="restore-btn">Restore my data</button>
+    <div style="height:10px"></div>
+    <button class="btn ghost small" onclick="restoring=false;render()">Back</button>`;
+
+  const step2 = `
+    <div class="field"><label for="l-cem">Price of 1 Cement Bag</label>
+      <input id="l-cem" type="number" inputmode="numeric" value="${setupData.cement}"></div>
+    <div class="field"><label for="l-wrk">Daily Workers' Pay</label>
+      <input id="l-wrk" type="number" inputmode="numeric" value="${setupData.workers}"></div>
+    <div class="grid2">
+      <button class="btn ghost" onclick="setupStep=1;render()">Back</button>
+      <button class="btn" onclick="nextSetupStep(2)">Next: Products & Price &rarr;</button>
+    </div>`;
+
+  const step3 = `
+    <p class="hint" style="margin-top:0;margin-bottom:12px">Define items you make or sell (e.g. 6 inch block, 9 inch block, Rings, 4 inch block).</p>
+    <div id="setup-prod-list">
+      ${setupData.products.map((p, i) => `
+        <div class="cost-row">
+          <div class="field"><label>Item Name</label><input type="text" class="sp-name" value="${esc(p.name)}"></div>
+          <div class="grid2">
+            <div class="field"><label>Selling Price</label><input type="number" inputmode="numeric" class="sp-price" value="${p.price}"></div>
+            <div class="field"><label>Initial Stock</label><input type="number" inputmode="numeric" class="sp-stock" value="${p.initialStock || 0}"></div>
+          </div>
+          ${setupData.products.length > 1 ? `<button class="link danger" onclick="removeSetupProduct(${i})">Remove Item</button>` : ''}
+        </div>
+      `).join('')}
+    </div>
+    <button class="btn ghost small" style="margin:12px 0 16px" onclick="addSetupProduct()">+ Add Custom Product / Ring / Block</button>
+    <div class="grid2">
+      <button class="btn ghost" onclick="setupStep=2;render()">Back</button>
+      <button class="btn" onclick="nextSetupStep(3)">Complete Setup &rarr;</button>
+    </div>`;
+
+  const body = restoring ? restoreStep : (setupStep === 1 ? step1 : setupStep === 2 ? step2 : step3);
+  const title = restoring ? "Restore your data" : "Set up your yard";
+  const subtitle = restoring ? "One-time check, then you're back in" : `Step ${setupStep} of 3`;
+
+  return `
+  <section class="hero">
+    <h1>Welcome to BlockBook</h1>
+    <div class="big" style="font-size:30px;color:#fff">${title}</div>
+    <div class="sub">${subtitle}</div>
+  </section>
+  <div class="pad">
+    ${!restoring ? `<div class="step-indicator">
+      <div class="step-pill ${setupStep>=1?'active':''}"></div>
+      <div class="step-pill ${setupStep>=2?'active':''}"></div>
+      <div class="step-pill ${setupStep>=3?'active':''}"></div>
+    </div>` : ""}
+    ${body}
+    <p class="note" style="margin-top:14px">Your credentials stay safely on this device, with a backup copy saved to the cloud.</p>
+  </div>`;
+}
+
+async function doRestore() {
+  const phone = document.getElementById("r-phone").value.trim();
+  if (phone.replace(/\D/g, "").length < 7) { toast("Enter a valid phone number"); return; }
+  const btn = document.getElementById("restore-btn");
+  btn.textContent = "Looking for your data\u2026";
+  btn.disabled = true;
+  try {
+    if (!window.cloudRestore) { toast("Restore isn't available right now"); btn.disabled = false; btn.textContent = "Restore my data"; return; }
+    const data = await window.cloudRestore(phone);
+    if (!data) {
+      toast("No backup found for that number");
+      btn.disabled = false; btn.textContent = "Restore my data";
+      return;
+    }
+    applyLoadedData(data);
+    restoring = false;
+    tab = "summary";
+    saveState();
+    render();
+    toast("Welcome back, " + (user ? user.name : "") + "!");
+  } catch (e) {
+    toast("Couldn't reach the backup, check your connection and try again");
+    btn.disabled = false; btn.textContent = "Restore my data";
+  }
+}
+
+function addSetupProduct() {
+  readSetupProducts();
+  setupData.products.push({ id: "p_" + Date.now(), name: "", price: 0, initialStock: 0 });
+  render();
+}
+
+function removeSetupProduct(index) {
+  readSetupProducts();
+  setupData.products.splice(index, 1);
+  render();
+}
+
+function readSetupProducts() {
+  const names = [...document.querySelectorAll(".sp-name")];
+  const pricesArr = [...document.querySelectorAll(".sp-price")];
+  const stocks = [...document.querySelectorAll(".sp-stock")];
+  setupData.products = names.map((el, i) => ({
+    id: setupData.products[i] ? setupData.products[i].id : "p_" + Date.now() + "_" + i,
+    name: el.value.trim(),
+    price: num(pricesArr[i].value),
+    initialStock: num(stocks[i].value)
+  }));
+}
+
+function nextSetupStep(curr) {
+  if (curr === 1) {
+    const name = document.getElementById("l-name").value.trim();
+    const phone = document.getElementById("l-phone").value.trim();
+    if (!name) { toast("Enter your block industry name"); return; }
+    if (phone.replace(/\D/g, "").length < 7) { toast("Enter a valid phone number"); return; }
+    setupData.name = name;
+    setupData.phone = phone;
+    setupStep = 2;
+    render();
+  } else if (curr === 2) {
+    setupData.cement = val("l-cem");
+    setupData.workers = val("l-wrk");
+    setupStep = 3;
+    render();
+  } else if (curr === 3) {
+    readSetupProducts();
+    const validProds = setupData.products.filter(p => p.name !== "");
+    if (!validProds.length) { toast("Please add at least one product"); return; }
+
+    user = { name: setupData.name, phone: setupData.phone };
+    prices = { cement: setupData.cement, workers: setupData.workers };
+    products = validProds;
+
+    pastBatches = [];
+    batch = null;
+    ledger = [];
+    nextId = 1;
+    batchCount = 1;
+
+    tab = "summary";
+    render();
+    toast("Welcome, " + user.name + "! Start your first batch to begin.");
+  }
+}
+
+function logout() {
+  user = null; setupStep = 1; restoring = false;
+  setupData = { name: "", phone: "", cement: 12500, workers: 25000,
+    products: [{ id: "b6", name: "6 inch block", price: 900, initialStock: 0 }, { id: "b9", name: "9 inch block", price: 1000, initialStock: 0 }] };
+  prices = { cement: 0, workers: 0 }; products = [];
+  pastBatches = []; batch = null; ledger = []; nextId = 1; batchCount = 1;
+  tab = "summary"; soldSub = "sale"; starting = false; addingLoad = false; editingLoads = false; editing = null; viewingPast = null;
+  render();
+}
+
+/* ---------- Shared cards ---------- */
+function breakdownCard(b) {
+  const t = totals(b), gain = t.profit >= 0;
+  return `<div class="card">
+    <h2>Where the money went</h2>
+    <div class="row"><span>Sales from blocks/items</span><b>${fmt(t.income)}</b></div>
+    <div class="row"><span class="mute">Sand (${plural(b.loads.length, "load")})</span><b>-${fmt(t.sand)}</b></div>
+    <div class="row"><span class="mute">Cement</span><b>-${fmt(t.cement)}</b></div>
+    <div class="row"><span class="mute">Workers' pay</span><b>-${fmt(t.workers)}</b></div>
+    <div class="row"><span class="mute">Other costs</span><b>-${fmt(t.other)}</b></div>
+    <div class="row total"><span>${gain ? "Profit" : "Loss"}</span><b class="${gain ? "gain-t" : "loss-t"}">${fmt(Math.abs(t.profit))}</b></div>
+  </div>`;
+}
+
+function stockCard(b) {
+  if (!products.length) return "";
+  const st = stock(b), neg = n => n < 0 ? "loss-t" : "";
+  return `<div class="card"><h2>Stock Inventory</h2>
+    <table class="stock">
+      <tr><th>Item</th><th>Made</th><th>Broken</th><th>Sold</th><th>In stock</th></tr>
+      ${products.map(p => {
+        const item = st[p.id] || { made: 0, broken: 0, sold: 0, instock: 0 };
+        return `<tr><td>${esc(p.name)}</td><td>${item.made}</td><td>${item.broken}</td><td>${item.sold}</td><td class="${neg(item.instock)}">${item.instock}</td></tr>`;
+      }).join("")}
+    </table></div>`;
+}
+
+/* ---------- Summary ---------- */
+function summaryView() {
+  if (viewingPast !== null) return pastView(viewingPast);
+  if (!batch) return firstBatchView();
+  const t = totals(), owed = owingList();
+  const owedTotal = sum(owed, o => o.bal);
+  const gain = t.profit >= 0;
+  const label = batch.open ? (gain ? "Profit so far" : "Loss so far") : (gain ? "Final profit" : "Final loss");
+
+  let action;
+  if (batch.open) action = `<button class="btn ghost" onclick="closeBatch()">Close batch - sand is finished</button>`;
+  else if (starting) action = newBatchForm();
+  else action = `<button class="btn" onclick="starting=true;render()">Start new batch</button>`;
+
+  const owedCard = owedTotal > 0 ? `
+    <button class="card owe" onclick="soldSub='owing';setTab('sold')">
+      <div class="s">Customers owe you</div>
+      <div class="t">${fmt(owedTotal)}</div>
+      <div class="s">${plural(owed.length, "customer")} · See who owes you</div>
+    </button>` : "";
+
+  const past = pastBatches.map((b, i) => ({ b, i })).reverse().map(({ b, i }) => {
+    const pt = totals(b), g = pt.profit >= 0;
+    return `<button class="past" onclick="viewingPast=${i};render();window.scrollTo(0,0)">
+      <span><span class="n">${esc(b.name)}</span><span class="m">${plural(b.loads.length, "load")} · sand ${fmt(pt.sand)}</span></span>
+      <span class="v ${g ? "gain-t" : "loss-t"}">${g ? "+" : "-"}${fmt(Math.abs(pt.profit))}</span></button>`;
+  }).join("");
+
+  return `
+  <section class="hero">
+    <div class="biz">${esc(user.name)}</div>
+    <h1>${esc(batch.name)} · ${label}</h1>
+    <div class="big ${gain ? "gain" : "loss"}">${gain ? "" : "-"}${fmt(Math.abs(t.profit))}</div>
+    <div class="sub">Sales ${fmt(t.income)} · Costs ${fmt(t.costs)}</div>
+  </section>
+  <div class="pad">
+    ${sandCard()}
+    ${owedCard}
+    ${breakdownCard(batch)}
+    ${stockCard(batch)}
+    ${action}
+    <div class="card" style="margin-top:18px">
+      <h2>Past batches</h2>
+      ${past || `<p class="mute" style="margin:0">Finished batches appear here after you start the next one.</p>`}
+    </div>
+  </div>`;
+}
+
+function firstBatchView() {
+  return `
+  <section class="hero">
+    <div class="biz">${esc(user.name)}</div>
+    <h1>You're all set up</h1>
+    <div class="big" style="font-size:26px;color:#fff">Start your first batch</div>
+    <div class="sub">Add the sand you bought to begin tracking costs and sales</div>
+  </section>
+  <div class="pad">${newBatchForm()}</div>`;
+}
+
+function pastView(i) {
+  const b = pastBatches[i], t = totals(b), gain = t.profit >= 0;
+  const days = b.days.slice().reverse().map(dayItem).join("");
+  const sales = b.sales.slice().reverse().map(saleItem).join("");
+  const none = `<p class="mute" style="margin:0">Nothing recorded.</p>`;
+  return `
+  <section class="hero">
+    <div class="biz">${esc(user.name)}</div>
+    <h1>${esc(b.name)} · ${gain ? "Final profit" : "Final loss"}</h1>
+    <div class="big ${gain ? "gain" : "loss"}">${gain ? "" : "-"}${fmt(Math.abs(t.profit))}</div>
+    <div class="sub">Sales ${fmt(t.income)} · Costs ${fmt(t.costs)}</div>
+  </section>
+  <div class="pad">
+    <button class="btn ghost small" onclick="viewingPast=null;editingLoads=false;editing=null;render();window.scrollTo(0,0)">Back to summary</button>
+    <div style="height:14px"></div>
+    ${breakdownCard(b)}
+    ${stockCard(b)}
+    <div class="card"><h2>Sand</h2>
+      ${editingLoads ? editLoadsForm(b) : `
+        ${b.loads.map((l, k) => `<div class="row"><span>Load ${k + 1} · ${esc(l.supplier || "Supplier not recorded")}</span><b>${fmt(l.price)}</b></div>`).join("")}
+        <div class="row total"><span>${plural(b.loads.length, "load")}</span><b>${fmt(t.sand)}</b></div>
+        <button class="btn ghost small" style="margin-top:12px" onclick="editingLoads=true;render()">Edit loads</button>`}
+    </div>
+    <div class="card"><h2>Daily records</h2>${days || none}
+      <button class="btn ghost small" style="margin-top:12px" onclick="editing=null;setTab('daily')">+ Add a missed record</button></div>
+    <div class="card"><h2>Sales</h2>${sales || none}
+      <button class="btn ghost small" style="margin-top:12px" onclick="editing=null;soldSub='sale';setTab('sold')">+ Add a missed sale</button></div>
+    <div class="card"><h2>Batch name</h2>
+      <div class="field"><input id="pb-name" type="text" value="${esc(b.name)}" aria-label="Batch name"></div>
+      <button class="btn small" onclick="renameBatch()">Save name</button></div>
+  </div>`;
+}
+
+function renameBatch() {
+  const n = document.getElementById("pb-name").value.trim();
+  if (!n) { toast("Enter a batch name"); return; }
+  pastBatches[viewingPast].name = n; render(); toast("Name saved");
+}
+
+/* ---------- Sand card, loads ---------- */
+function sandCard() {
+  const days = batch.days.length;
+  let body;
+  if (editingLoads) {
+    body = editLoadsForm(batch);
+  } else {
+    body = `<div class="s" style="margin-bottom:6px">${plural(batch.loads.length, "load")} · ${fmt(sandCost(batch))} in total</div>
+      ${batch.loads.map((l, i) => `<div class="row" style="font-size:14px"><span>Load ${i + 1} · ${esc(l.supplier || "Supplier not recorded")}</span><b>${fmt(l.price)}</b></div>`).join("")}
+      <div class="s" style="margin-top:6px">${batch.open ? plural(days, "day") + " recorded on this sand" : "Closed after " + plural(days, "day")}</div>
+      ${batch.open ? addLoadBlock() : ""}`;
+  }
+  return `<div class="card sand ${batch.open ? "" : "done"}"><span class="dot"></span>
+    <div style="flex:1;min-width:0"><div class="t">${batch.open ? "Sand in use" : "Sand finished"}</div>${body}</div></div>`;
+}
+
+function addLoadBlock() {
+  if (!addingLoad) return `<div class="grid2" style="margin-top:12px">
+    <button class="btn ghost small" onclick="addingLoad=true;render()">+ Add load</button>
+    <button class="btn ghost small" onclick="editingLoads=true;render()">Edit loads</button></div>`;
+  return `<div style="margin-top:12px;border-top:1px solid var(--line);padding-top:12px">
+    <div class="field"><label for="al-from">Supplier</label><input id="al-from" type="text" placeholder="Who you bought it from"></div>
+    <div class="field"><label for="al-price">Price of this load</label><input id="al-price" type="number" inputmode="numeric" placeholder="0"></div>
+    <div class="grid2"><button class="btn small" onclick="saveLoad()">Save load</button><button class="btn ghost small" onclick="addingLoad=false;render()">Cancel</button></div>
+  </div>`;
+}
+
+function saveLoad() {
+  const price = val("al-price");
+  if (!price) { toast("Enter the price of this load"); return; }
+  batch.loads.push({ supplier: document.getElementById("al-from").value.trim(), price });
+  addingLoad = false; render();
+  toast("Load " + batch.loads.length + " added, sand cost is now " + fmt(sandCost(batch)));
+}
+
+function editLoadRow(l, i) {
+  return `<div class="el-row cost-row">
+    <div class="field"><label>Load ${i + 1} · Supplier</label><input class="el-from" type="text" value="${esc(l.supplier)}"></div>
+    <div class="field"><label>Load ${i + 1} · Price</label><input class="el-price" type="number" inputmode="numeric" value="${l.price || ""}" placeholder="0"></div>
+    <button class="link danger" onclick="confirmTap(this,()=>this.closest('.el-row').remove())">Remove this load</button>
+  </div>`;
+}
+
+function editLoadsForm(b) {
+  return `<div id="el-list">${b.loads.map((l, i) => editLoadRow(l, i)).join("")}</div>
+    <div class="field" style="margin-top:12px"><button class="btn ghost small" onclick="addEditLoadRow()">+ Add another load</button></div>
+    <div class="grid2"><button class="btn small" onclick="saveLoads()">Save changes</button><button class="btn ghost small" onclick="editingLoads=false;render()">Cancel</button></div>`;
+}
+
+function addEditLoadRow() {
+  const box = document.getElementById("el-list");
+  box.insertAdjacentHTML("beforeend", editLoadRow({ supplier: "", price: "" }, box.children.length));
+}
+
+function saveLoads() {
+  const f = [...document.querySelectorAll(".el-from")], p = [...document.querySelectorAll(".el-price")];
+  const loads = f.map((el, i) => ({ supplier: el.value.trim(), price: num(p[i].value) })).filter(l => l.price > 0);
+  if (!loads.length) { toast("A batch needs at least one load with a price"); return; }
+  const b = cur(); b.loads = loads; editingLoads = false; render();
+  toast("Loads saved, sand cost is now " + fmt(sandCost(b)));
+}
+
+/* ---------- New / close batch ---------- */
+function loadRow(n) {
+  return `<div class="cost-row">
+    <div class="field"><label>Load ${n} · Supplier</label><input type="text" class="nl-from" placeholder="Who you bought it from"></div>
+    <div class="field"><label>Load ${n} · Price</label><input type="number" inputmode="numeric" class="nl-price" placeholder="0" oninput="previewSand()"></div>
+  </div>`;
+}
+
+function newBatchForm() {
+  return `<div class="card"><h2>${batch ? "Start new batch" : "Your first batch"}</h2>
+    <div class="field"><label for="nb-name">Batch name</label>
+      <input id="nb-name" type="text" value="Batch ${batchCount}"></div>
+    <div id="nb-loads">${loadRow(1)}</div>
+    <div class="field"><button class="btn ghost small" onclick="addLoadRow()">+ Add load</button></div>
+    <div class="preview">
+      <div class="row"><span>Loads</span><b id="nb-count">0</b></div>
+      <div class="row total"><span>Sand cost</span><b id="nb-total">0</b></div>
+    </div>
+    <button class="btn" onclick="startBatch()">Start batch</button></div>`;
+}
+
+function addLoadRow() {
+  const box = document.getElementById("nb-loads");
+  box.insertAdjacentHTML("beforeend", loadRow(box.children.length + 1));
+}
+
+function readLoads(fromSel, priceSel) {
+  const f = [...document.querySelectorAll(fromSel)], p = [...document.querySelectorAll(priceSel)];
+  return f.map((el, i) => ({ supplier: el.value.trim(), price: num(p[i].value) })).filter(l => l.price > 0);
+}
+
+function previewSand() {
+  const loads = readLoads(".nl-from", ".nl-price");
+  document.getElementById("nb-count").textContent = loads.length;
+  document.getElementById("nb-total").textContent = fmt(sum(loads, l => l.price));
+}
+
+function closeBatch() { batch.open = false; addingLoad = false; editingLoads = false; editing = null; render(); toast("Batch closed"); }
+
+function startBatch() {
+  const loads = readLoads(".nl-from", ".nl-price");
+  if (!loads.length) { toast("Add at least one load with its price"); return; }
+  const name = document.getElementById("nb-name").value.trim() || "Batch " + batchCount;
+  const wasFirst = !batch;
+  if (batch) pastBatches.push(batch);
+  batchCount++;
+  batch = { name, open: true, loads, days: [], sales: [] };
+  starting = false; render();
+  toast(wasFirst ? "Batch started - add today's record whenever you're ready" : "New batch started. " + pastBatches[pastBatches.length - 1].name + " is in Past batches");
+}
+
+function closedView() {
+  return `<div class="card"><h2>This batch is closed</h2>
+    <p class="mute" style="margin:0 0 14px">Start a new batch when you buy the next sand.</p>
+    <button class="btn" onclick="starting=true;setTab('summary')">Start new batch</button></div>`;
+}
+
+/* ---------- Sold blocks ---------- */
+function pastBanner() {
+  if (viewingPast === null) return "";
+  const b = pastBatches[viewingPast];
+  return `<div class="editing">Past batch: ${esc(b.name)}<br><button class="link" onclick="editing=null;setTab('summary')">Back to ${esc(b.name)}</button></div>`;
+}
+
+function saleItem(s) {
+  const owe = s.value - s.paid;
+  const itemsSummary = products.map(p => {
+    const qty = (s.items && s.items[p.id]) || 0;
+    return qty > 0 ? `${qty} ${esc(p.name)}` : null;
+  }).filter(Boolean).join(" · ");
+
+  return `<div class="rec"><div class="top"><span>${lbl(s.iso)}${s.customer ? " · " + esc(s.customer) : ""}</span><span>${fmt(s.value)}</span></div>
+    <div class="det">${itemsSummary || "Custom items"}${owe > 0 ? ` · <span class="loss-t">Owes ${fmt(owe)}</span>` : " · Paid in full"}</div>
+    <div class="acts"><button class="link" onclick="editSale(${s.id})">Edit</button>
+      <button class="link danger" onclick="confirmTap(this,()=>delSale(${s.id}))">Delete</button>
+      ${s.customer && getPhone(s.customer) ? callBtn(s.customer) : ""}</div></div>`;
+}
+
+function dayItem(d) {
+  const oth = d.others.map(o => `${esc(o.what)} ${fmt(o.amt)}`).join(", ");
+  let madeStr = [], brokenCount = 0;
+  products.forEach(p => {
+    if (d.items && d.items[p.id]) {
+      if (d.items[p.id].made) madeStr.push(`${d.items[p.id].made} ${esc(p.name)}`);
+      if (d.items[p.id].broken) brokenCount += d.items[p.id].broken;
+    }
+  });
+
+  return `<div class="rec"><div class="top"><span>${lbl(d.iso)}</span><span>-${fmt(dayCost(d))}</span></div>
+    <div class="det">Made ${madeStr.join(", ") || "0 items"}${brokenCount ? " · Broken " + brokenCount : ""} · Cement ${d.cement} bags · Pay ${fmt(d.workers)}${oth ? " · " + oth : ""}</div>
+    <div class="acts"><button class="link" onclick="editDay(${d.id})">Edit</button>
+      <button class="link danger" onclick="confirmTap(this,()=>delDay(${d.id}))">Delete</button></div></div>`;
+}
+
+function soldView() {
+  if (viewingPast !== null) return `<div class="pad"><div class="section-title">Sold items</div>${saleForm()}</div>`;
+  if (!batch) return `<div class="pad"><div class="section-title">Sold items</div>
+    <div class="card"><h2>No batch yet</h2><p class="mute" style="margin:0">Start your first batch on the Summary tab before recording a sale.</p></div></div>`;
+  const owedTotal = sum(owingList(), o => o.bal);
+  return `<div class="pad">
+    <div class="section-title">Sold items</div>
+    <div class="seg">
+      <button aria-pressed="${soldSub === "sale"}" onclick="soldSub='sale';editing=null;render()">Record sale</button>
+      <button aria-pressed="${soldSub === "owing"}" onclick="soldSub='owing';editing=null;render()">Who owes me${owedTotal ? " (" + fmt(owedTotal) + ")" : ""}</button>
+    </div>
+    ${soldSub === "sale" ? saleForm() : owingView()}
+  </div>`;
+}
+
+function editingSale() { return editing && editing.type === "sale" ? cur().sales.find(s => s.id === editing.id) || null : null; }
+
+function saleForm() {
+  if (viewingPast === null && !batch.open) return closedView();
+  if (!products.length) return `<div class="card"><h2>No items set up yet</h2><p class="mute" style="margin:0">Add the things you sell in Settings first.</p></div>`;
+  const ed = editingSale(), st = stock(cur(), ed ? ed.id : null);
+  const list = cur().sales.slice().reverse().map(saleItem).join("");
+  const paidPrefill = ed && ed.paid < ed.value ? ed.paid : "";
+
+  return `
+    ${pastBanner()}
+    ${ed ? `<div class="editing">Editing the sale of ${lbl(ed.iso)}. Change what you need, then save.</div>` : ""}
+    <div class="field"><label for="f-date">Date</label><input id="f-date" type="date" value="${ed ? ed.iso : TODAY}"></div>
+    <div class="group"><h2>Items Sold</h2>
+      ${products.map(p => {
+        const valQty = ed && ed.items && ed.items[p.id] ? ed.items[p.id] : "";
+        const avail = st[p.id] ? st[p.id].instock : 0;
+        return `<div class="field"><label for="f-s-${p.id}">${esc(p.name)} sold (@${fmt(p.price)})</label>
+          <input id="f-s-${p.id}" class="sale-prod-input" data-pid="${p.id}" data-price="${p.price}" type="number" inputmode="numeric" placeholder="0" value="${valQty}" oninput="previewSale()">
+          <div class="hint" id="h-s-${p.id}">In stock: ${avail}</div></div>`;
+      }).join("")}
+    </div>
+    <div class="group"><h2>Customer</h2>
+      <div class="field"><label for="f-cust">Customer name <span class="opt">(needed if they still owe you)</span></label>
+        <input id="f-cust" type="text" autocomplete="off" placeholder="Who bought the items" value="${ed ? esc(ed.customer) : ""}"></div>
+      <div class="field"><label for="f-cust-phone">Customer phone <span class="opt">(optional, lets you call them from the app)</span></label>
+        <input id="f-cust-phone" type="tel" inputmode="tel" autocomplete="off" placeholder="e.g. 08012345678" value="${ed ? esc(getPhone(ed.customer)) : ""}"></div>
+      <div class="field"><label for="f-paid">Amount paid</label>
+        <input id="f-paid" type="number" inputmode="numeric" placeholder="Leave empty if paid in full" value="${paidPrefill}" oninput="previewSale()">
+        <div class="hint" id="h-paid">Leave empty if the customer paid in full</div></div>
+    </div>
+    <div class="preview"><div class="row total" style="border-top:0;margin-top:0;padding-top:0"><span>Sales value</span><b id="p-sale">0</b></div></div>
+    <button class="btn" onclick="saveSale()">${ed ? "Save changes" : "Save sale"}</button>
+    ${ed ? `<div style="height:10px"></div><button class="btn ghost" onclick="cancelEdit()">Cancel</button>` : ""}
+    <div class="card" style="margin-top:18px"><h2>Sales so far</h2>${list || `<p class="mute" style="margin:0">No sales yet.</p>`}</div>`;
+}
+
+function previewSale() {
+  const ed = editingSale(), st = stock(cur(), ed ? ed.id : null);
+  let value = 0;
+
+  document.querySelectorAll(".sale-prod-input").forEach(el => {
+    const pid = el.dataset.pid;
+    const price = parseFloat(el.dataset.price) || 0;
+    const qty = num(el.value);
+    value += qty * price;
+
+    const h = document.getElementById("h-s-" + pid);
+    const avail = st[pid] ? st[pid].instock : 0;
+    const over = qty > avail;
+    if (h) {
+      h.textContent = over ? "Only " + avail + " in stock" : "In stock: " + avail;
+      h.style.color = over ? "var(--loss)" : "";
+      h.style.fontWeight = over ? "700" : "";
+    }
+  });
+
+  document.getElementById("p-sale").textContent = fmt(value);
+  const raw = document.getElementById("f-paid").value, h = document.getElementById("h-paid");
+  const owe = raw === "" ? 0 : value - num(raw);
+  h.textContent = owe > 0 ? "Customer still owes " + fmt(owe) : owe < 0 ? "Amount paid is more than the sales value" : "Leave empty if the customer paid in full";
+  h.style.color = owe !== 0 && raw !== "" ? "var(--loss)" : "";
+  h.style.fontWeight = owe !== 0 && raw !== "" ? "700" : "";
+}
+
+function saveSale() {
+  const ed = editingSale();
+  const b = cur(), st = stock(b, ed ? ed.id : null);
+
+  let items = {};
+  let value = 0;
+  let totalQty = 0;
+  let overStock = false;
+
+  document.querySelectorAll(".sale-prod-input").forEach(el => {
+    const pid = el.dataset.pid;
+    const price = parseFloat(el.dataset.price) || 0;
+    const qty = num(el.value);
+    if (qty > 0) {
+      items[pid] = qty;
+      totalQty += qty;
+      value += qty * price;
+      const avail = st[pid] ? st[pid].instock : 0;
+      if (qty > avail) overStock = true;
+    }
+  });
+
+  if (!totalQty) { toast("Enter how many items were sold"); return; }
+  if (overStock) { toast("You can't sell more items than in stock"); return; }
+
+  const raw = document.getElementById("f-paid").value;
+  const paid = raw === "" ? value : num(raw);
+  if (paid > value) { toast("Amount paid is more than the sales value"); return; }
+  const owe = value - paid;
+  let customer = document.getElementById("f-cust").value.trim();
+  if (owe > 0 && !customer) { toast("Enter the customer's name, they still owe " + fmt(owe)); return; }
+  customer = customer ? canon(customer) : "";
+  const custPhone = document.getElementById("f-cust-phone").value.trim();
+  if (customer && custPhone) setPhone(customer, custPhone);
+  const id = ed ? ed.id : nextId++;
+  const sale = { id, iso: dateVal("f-date"), items, value, customer, paid };
+
+  if (ed) b.sales[b.sales.indexOf(ed)] = sale; else b.sales.push(sale);
+  ledger = ledger.filter(e => !(e.kind === "owed" && e.saleId === id));
+  if (owe > 0) ledger.push({ customer, amt: owe, kind: "owed", saleId: id });
+  editing = null; setTab(viewingPast !== null ? "summary" : "sold");
+  toast(ed ? "Sale updated" : owe > 0 ? "Sale saved, " + customer + " owes " + fmt(owe) : "Sale saved");
+}
+
+function editSale(id) { editing = { type: "sale", id }; soldSub = "sale"; setTab("sold"); }
+function delSale(id) {
+  const b = cur(); b.sales = b.sales.filter(s => s.id !== id);
+  ledger = ledger.filter(e => !(e.kind === "owed" && e.saleId === id));
+  editing = null; render(); toast("Sale deleted");
+}
+function cancelEdit() { editing = null; if (viewingPast !== null) setTab("summary"); else render(); }
+
+/* ---------- Who owes me ---------- */
+function owingView() {
+  const list = owingList(), total = sum(list, o => o.bal);
+  if (!list.length) {
+    return `<div class="card"><h2>Nobody owes you</h2><p class="mute" style="margin:0">When a customer pays less than the sales value, they show up here with what they still owe.</p></div>`;
+  }
+  return `
+    <div class="preview"><div class="row total" style="border-top:0;margin-top:0;padding-top:0"><span>Total owed to you</span><b>${fmt(total)}</b></div></div>
+    <div class="card">
+      ${list.map((o, i) => `
+        <div class="debtor">
+          <div class="top"><span>${esc(o.name)}</span><span>${fmt(o.bal)}</span></div>
+          ${getPhone(o.name) ? `<div style="margin-top:6px">${callBtn(o.name)}</div>` : `
+            <div class="pay" style="margin-top:8px">
+              <input id="cph-${i}" type="tel" inputmode="tel" placeholder="Add phone number to call them" aria-label="Phone number for ${esc(o.name)}">
+              <button class="btn small ghost" onclick="saveDebtorPhone(${i})">Save</button>
+            </div>`}
+          <div class="pay">
+            <input id="pay-${i}" type="number" inputmode="numeric" placeholder="Amount they paid" aria-label="Payment from ${esc(o.name)}">
+            <button class="btn small" onclick="payDebt(${i})">Save payment</button>
+          </div>
+        </div>`).join("")}
+    </div>`;
+}
+function saveDebtorPhone(i) {
+  const o = owingList()[i], phone = document.getElementById("cph-" + i).value.trim();
+  if (!o) return;
+  if (!phone) { toast("Enter a phone number"); return; }
+  setPhone(o.name, phone); render(); toast("Phone number saved for " + o.name);
+}
+
+function payDebt(i) {
+  const o = owingList()[i], amt = val("pay-" + i);
+  if (!o) return;
+  if (!amt) { toast("Enter the amount " + o.name + " paid"); return; }
+  if (amt > o.bal) { toast(o.name + " only owes " + fmt(o.bal)); return; }
+  ledger.push({ customer: o.name, amt, kind: "paid", saleId: null });
+  render(); toast(amt === o.bal ? o.name + " has paid everything" : "Payment saved, " + fmt(o.bal - amt) + " left");
+}
+
+/* ---------- Daily record ---------- */
+function editingDay() { return editing && editing.type === "day" ? cur().days.find(d => d.id === editing.id) || null : null; }
+
+function dailyView() {
+  if (viewingPast === null && !batch) return `<div class="pad"><div class="section-title">Daily record</div>
+    <div class="card"><h2>No batch yet</h2><p class="mute" style="margin:0">Start your first batch on the Summary tab first.</p></div></div>`;
+  if (viewingPast === null && !batch.open) return `<div class="pad"><div class="section-title">Daily record</div>${closedView()}</div>`;
+  if (!products.length) return `<div class="pad"><div class="section-title">Daily record</div>
+    <div class="card"><h2>No items set up yet</h2><p class="mute" style="margin:0">Add the things you make or sell in Settings first.</p></div></div>`;
+  const ed = editingDay();
+  const list = cur().days.slice().reverse().map(dayItem).join("");
+  const costRows = ed && ed.others.length ? ed.others.map(o => costRow(o.what, o.amt)).join("") : costRow();
+
+  return `<div class="pad">
+    <div class="section-title">${ed ? "Edit record" : "Add today's record"}</div>
+    ${pastBanner()}
+    ${ed ? `<div class="editing">Editing the record of ${lbl(ed.iso)}. Change what you need, then save.</div>` : ""}
+    <div class="field"><label for="f-date">Date</label><input id="f-date" type="date" value="${ed ? ed.iso : TODAY}"></div>
+
+    <div class="group"><h2>Items / Blocks Produced</h2>
+      ${products.map(p => {
+        const itemObj = (ed && ed.items && ed.items[p.id]) ? ed.items[p.id] : { made: "", broken: "" };
+        return `<div class="card" style="padding:10px;margin-bottom:10px">
+          <label style="font-size:15px;color:var(--ink)">${esc(p.name)}</label>
+          <div class="grid2">
+            <div class="field" style="margin-bottom:0"><label>Made</label><input id="f-m-${p.id}" class="prod-m-input" data-pid="${p.id}" type="number" inputmode="numeric" placeholder="0" value="${itemObj.made || ""}"></div>
+            <div class="field" style="margin-bottom:0"><label>Broken</label><input id="f-k-${p.id}" class="prod-k-input" data-pid="${p.id}" type="number" inputmode="numeric" placeholder="0" value="${itemObj.broken || ""}"></div>
+          </div>
+        </div>`;
+      }).join("")}
+    </div>
+
+    <div class="group"><h2>Cement and workers</h2>
+      <div class="field"><label for="f-cem">Cement bags used</label><input id="f-cem" type="number" inputmode="numeric" placeholder="0" value="${ed ? ed.cement : ""}" oninput="previewDay()">
+        <div class="hint">${fmt(prices.cement)} per bag</div></div>
+      <div class="field"><label for="f-pay">Workers' pay today</label><input id="f-pay" type="number" inputmode="numeric" value="${ed ? ed.workers : prices.workers || ""}" placeholder="0" oninput="previewDay()">
+        <div class="hint">${ed ? "The pay saved for this day" : "Filled in from Settings, change it if today is different"}</div></div>
+    </div>
+
+    <div class="group"><h2>Other costs</h2>
+      <div id="costs">${costRows}</div>
+      <div class="field"><button class="btn ghost small" onclick="addCostRow()">+ Add another cost</button></div>
+    </div>
+
+    <div class="preview">
+      <div class="row"><span>Cement</span><b id="p-cem">0</b></div>
+      <div class="row"><span>Workers' pay</span><b id="p-wrk">0</b></div>
+      <div class="row"><span>Other costs</span><b id="p-oth">0</b></div>
+      <div class="row total"><span>Costs today</span><b id="p-tot">0</b></div>
+    </div>
+    <button class="btn" onclick="saveDay()">${ed ? "Save changes" : "Save record"}</button>
+    ${ed ? `<div style="height:10px"></div><button class="btn ghost" onclick="cancelEdit()">Cancel</button>` : ""}
+    <div class="card" style="margin-top:18px"><h2>Daily records</h2>${list || `<p class="mute" style="margin:0">No records yet.</p>`}</div>
+  </div>`;
+}
+
+function costRow(what = "", amt = "") {
+  return `<div class="cost-row">
+    <div class="field"><label>What was it for</label><input type="text" class="oc-what" placeholder="e.g. Fuel, water, repairs" value="${esc(what)}"></div>
+    <div class="field"><label>Price</label><input type="number" inputmode="numeric" class="oc-amt" placeholder="0" value="${amt}" oninput="previewDay()"></div>
+  </div>`;
+}
+
+function addCostRow() { document.getElementById("costs").insertAdjacentHTML("beforeend", costRow()); }
+
+function readOthers() {
+  const w = [...document.querySelectorAll(".oc-what")], a = [...document.querySelectorAll(".oc-amt")];
+  return w.map((el, i) => ({ what: el.value.trim() || "Other", amt: num(a[i].value) })).filter(o => o.amt > 0);
+}
+
+function previewDay() {
+  const cem = val("f-cem") * prices.cement, wrk = val("f-pay"), oth = sum(readOthers(), o => o.amt);
+  document.getElementById("p-cem").textContent = fmt(cem);
+  document.getElementById("p-wrk").textContent = fmt(wrk);
+  document.getElementById("p-oth").textContent = fmt(oth);
+  document.getElementById("p-tot").textContent = fmt(cem + wrk + oth);
+}
+
+function saveDay() {
+  const b = cur(), ed = editingDay();
+  let items = {};
+  let totalEntries = 0;
+
+  products.forEach(p => {
+    const mEl = document.getElementById("f-m-" + p.id);
+    const kEl = document.getElementById("f-k-" + p.id);
+    const m = mEl ? num(mEl.value) : 0;
+    const k = kEl ? num(kEl.value) : 0;
+    if (m > 0 || k > 0) {
+      items[p.id] = { made: m, broken: k };
+      totalEntries += (m + k);
+    }
+  });
+
+  const cement = val("f-cem"), workers = val("f-pay"), others = readOthers();
+  if (!totalEntries && !cement && !workers && !others.length) { toast("Enter at least one number"); return; }
+
+  const d = { id: ed ? ed.id : nextId++, iso: dateVal("f-date"), items, cement, workers, others };
+
+  const days = b.days.filter(x => !ed || x.id !== ed.id).concat(d);
+  const st = stock({ days, sales: b.sales });
+
+  let negative = false;
+  Object.values(st).forEach(s => { if (s.instock < 0) negative = true; });
+  if (negative) { toast("That would leave less stock than you've already sold"); return; }
+
+  if (ed) b.days[b.days.indexOf(ed)] = d; else b.days.push(d);
+  editing = null; setTab(viewingPast !== null ? "summary" : "daily"); toast(ed ? "Record updated" : "Record saved");
+}
+
+function editDay(id) { editing = { type: "day", id }; setTab("daily"); }
+function delDay(id) {
+  const b = cur(), days = b.days.filter(d => d.id !== id);
+  const st = stock({ days, sales: b.sales });
+  let negative = false;
+  Object.values(st).forEach(s => { if (s.instock < 0) negative = true; });
+  if (negative) { toast("You can't delete this record, those items were already sold"); return; }
+  b.days = days; editing = null; render(); toast("Record deleted");
+}
+
+/* ---------- Settings ---------- */
+function settingsView() {
+  const ts = trialStatus();
+  const settingsWaMsg = `Hi, I'd like to pay for BlockBook.\nBusiness: ${user.name} (${user.phone})\nReference: ${deviceRef}`;
+  const trialCard = !unlocked ? `<div class="card"><h2>Trial status</h2>
+    <p class="mute" style="margin:0">${Math.max(0, ts.left)} day${Math.max(0, ts.left) === 1 ? "" : "s"} left in your free trial.</p>
+    <p class="mute" style="margin:8px 0 0">Your reference code: <b>${esc(deviceRef)}</b></p>
+    ${ts.left <= 5 ? `<p class="mute" style="margin:8px 0 0">Pay ${esc(MONTHLY_PRICE)}/month to keep using BlockBook after your trial ends.</p>
+      <a class="btn small" style="display:block;text-align:center;text-decoration:none;margin-top:10px" href="https://wa.me/${esc(CONTACT_PHONE)}?text=${encodeURIComponent(settingsWaMsg)}">Message on WhatsApp to pay</a>` : ""}
+    </div>` : "";
+  return `<div class="pad">
+    <div class="section-title">Settings</div>
+    ${trialCard}
+    <div class="card">
+      <h2>Your yard profile</h2>
+      <div class="field"><label for="s-name">Block industry name</label><input id="s-name" type="text" value="${esc(user.name)}"></div>
+      <div class="field" style="margin-bottom:0"><label for="s-phone">Phone</label><input id="s-phone" type="tel" value="${esc(user.phone)}"></div>
+      <button class="btn small" style="margin-top:12px" onclick="saveProfile()">Save profile</button>
+    </div>
+
+    <div class="card">
+      <h2>Materials & Workers</h2>
+      <div class="field"><label for="s-cem">Cement, price per bag</label><input id="s-cem" type="number" inputmode="numeric" value="${prices.cement}" oninput="setPrice('cement',this.value)"></div>
+      <div class="field" style="margin-bottom:0"><label for="s-wrk">Workers' pay per day</label><input id="s-wrk" type="number" inputmode="numeric" value="${prices.workers}" oninput="setPrice('workers',this.value)">
+        <div class="hint">Fills in automatically on each daily record</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Products, Blocks & Rings Catalog</h2>
+      <div id="settings-prod-list">
+        ${products.map((p, i) => `
+          <div class="cost-row">
+            <div class="field"><label>Item Name</label><input type="text" class="set-p-name" value="${esc(p.name)}"></div>
+            <div class="grid2">
+              <div class="field"><label>Selling Price</label><input type="number" inputmode="numeric" class="set-p-price" value="${p.price}"></div>
+              <div class="field"><label>Initial Stock</label><input type="number" inputmode="numeric" class="set-p-stock" value="${p.initialStock || 0}"></div>
+            </div>
+            ${products.length > 1 ? `<button class="link danger" onclick="removeCatalogProduct(${i})">Remove Item</button>` : ''}
+          </div>
+        `).join("")}
+      </div>
+      <button class="btn ghost small" style="margin-top:12px" onclick="addCatalogProduct()">+ Add New Product / Ring / Block</button>
+      <button class="btn small" style="margin-top:12px" onclick="saveCatalog()">Save Products Catalog</button>
+    </div>
+
+    ${customersCard()}
+
+    <div class="card">
+      <h2>Backup</h2>
+      <p class="mute" style="margin:0 0 12px">Your data backs up to the cloud automatically. Use this if you want to check it worked.</p>
+      <button class="btn ghost small" onclick="manualBackup()">Back up now</button>
+    </div>
+
+    ${!unlocked ? `<button class="btn ghost small" style="margin-bottom:12px" onclick="unlocked=true;saveState();render();toast('This phone now has permanent access')">This is my own phone, unlock permanently</button>` : ""}
+    <button class="btn ghost small" onclick="logout()">Log out</button>
+  </div>`;
+}
+
+function manualBackup() {
+  if (!user || !user.phone) { toast("Set up your profile first"); return; }
+  saveState();
+  toast("Backing up now\u2026");
+}
+
+function customersCard() {
+  const names = Object.keys(customers).sort((a, b) => a.localeCompare(b));
+  if (!names.length) return "";
+  return `<div class="card"><h2>Customers</h2>
+    ${names.map((n, i) => `
+      <div class="debtor">
+        <div class="top"><span>${esc(n)}</span></div>
+        <div class="pay">
+          <input id="cust-ph-${i}" type="tel" inputmode="tel" value="${esc(customers[n])}" aria-label="Phone for ${esc(n)}">
+          <button class="btn small" onclick="updateCustomerPhone('${esc(n).replace(/'/g, "\\'")}', ${i})">Save</button>
+        </div>
+        <div style="margin-top:6px">${callBtn(n)}</div>
+      </div>`).join("")}
+  </div>`;
+}
+function updateCustomerPhone(name, i) {
+  const phone = document.getElementById("cust-ph-" + i).value.trim();
+  if (!phone) { toast("Enter a phone number"); return; }
+  setPhone(name, phone); render(); toast("Saved");
+}
+
+function saveProfile() {
+  const n = document.getElementById("s-name").value.trim();
+  const p = document.getElementById("s-phone").value.trim();
+  if (!n) { toast("Enter block industry name"); return; }
+  user.name = n; user.phone = p;
+  toast("Profile updated");
+  render();
+}
+
+function setPrice(k, v) { prices[k] = num(v); saveState(); }
+
+function addCatalogProduct() {
+  readCatalogProducts();
+  products.push({ id: "p_" + Date.now(), name: "", price: 0, initialStock: 0 });
+  render();
+}
+
+function removeCatalogProduct(index) {
+  readCatalogProducts();
+  products.splice(index, 1);
+  render();
+}
+
+function readCatalogProducts() {
+  const names = [...document.querySelectorAll(".set-p-name")];
+  const priceArr = [...document.querySelectorAll(".set-p-price")];
+  const stockArr = [...document.querySelectorAll(".set-p-stock")];
+  products = names.map((el, i) => ({
+    id: products[i] ? products[i].id : "p_" + Date.now() + "_" + i,
+    name: el.value.trim(),
+    price: num(priceArr[i].value),
+    initialStock: num(stockArr[i].value)
+  }));
+}
+
+function saveCatalog() {
+  readCatalogProducts();
+  products = products.filter(p => p.name !== "");
+  toast("Products & prices saved");
+  render();
+}
+
+/* ---------- Shell ---------- */
+function setTab(t) { tab = t; render(); window.scrollTo(0, 0); }
+function render() {
+  const ts = trialStatus();
+  if (ts.expired) {
+    document.getElementById("nav").style.display = "none";
+    document.getElementById("view").innerHTML = trialExpiredView();
+    return;
+  }
+  document.getElementById("nav").style.display = user ? "grid" : "none";
+  const views = { summary: summaryView, sold: soldView, daily: dailyView, settings: settingsView };
+  document.getElementById("view").innerHTML = user ? views[tab]() : loginView();
+  document.querySelectorAll(".tab").forEach(b => b.setAttribute("aria-selected", b.dataset.tab === tab));
+  if (user && batch && (batch.open || viewingPast !== null) && tab === "daily") previewDay();
+  if (user && batch && (batch.open || viewingPast !== null) && tab === "sold" && (soldSub === "sale" || viewingPast !== null)) previewSale();
+  saveState();
+}
+
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => {
+  starting = false; addingLoad = false; editingLoads = false; editing = null; viewingPast = null;
+  if (b.dataset.tab === "sold") soldSub = "sale";
+  setTab(b.dataset.tab);
+}));
+
+loadState();
+if (!trialStart) trialStart = TODAY;
+if (!deviceRef) deviceRef = genDeviceRef();
+render();
+</script>
+</body>
+</html>
